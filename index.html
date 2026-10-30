@@ -1,0 +1,1670 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Blog - Executive SQA Dashboard | Conexión en Vivo Google Sheets</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg-base: #f8fafc;
+      --bg-card: #ffffff;
+      --border-subtle: #e2e8f0;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --accent-blue: #2563eb;
+      --accent-blue-light: #eff6ff;
+      --accent-green: #059669;
+      --accent-green-light: #ecfdf5;
+      --accent-red: #dc2626;
+      --accent-red-light: #fef2f2;
+      --accent-amber: #d97706;
+      --accent-amber-light: #fffbeb;
+      --accent-cyan: #0891b2;
+      --accent-orange: #ea580c;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+
+    /* Botón discreto de Pica (Easter Egg Blackjack) */
+    .secret-spade-btn {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: transparent;
+      border: 1px solid transparent;
+      color: #94a3b8;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0.35;
+      transition: all 0.25s ease;
+      z-index: 900;
+      user-select: none;
+    }
+
+    .secret-spade-btn:hover {
+      opacity: 1;
+      color: #0f172a;
+      background: #ffffff;
+      border-color: var(--border-subtle);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      transform: scale(1.08);
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .title-group h1 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .badge-live {
+      background: var(--accent-green-light);
+      color: var(--accent-green);
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      border: 1px solid rgba(5, 150, 105, 0.25);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge-dot {
+      width: 7px;
+      height: 7px;
+      background: var(--accent-green);
+      border-radius: 50%;
+      animation: pulse 1.8s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.9); opacity: 0.7; }
+      50% { transform: scale(1.3); opacity: 1; }
+      100% { transform: scale(0.9); opacity: 0.7; }
+    }
+
+    .title-group p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .meta-tag {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .meta-tag span {
+      color: var(--text-main);
+      font-weight: 700;
+    }
+
+    .btn-refresh {
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+    .btn-refresh:hover {
+      background: var(--accent-blue-light);
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+    }
+
+    /* KPI Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .kpi-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+    }
+
+    .card-green::before { background: var(--accent-green); }
+    .card-red::before { background: var(--accent-red); }
+    .card-amber::before { background: var(--accent-orange); }
+    .card-cyan::before { background: var(--accent-cyan); }
+    .card-blue::before { background: var(--accent-blue); }
+
+    .kpi-label {
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    .kpi-value {
+      font-size: 2.2rem;
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 6px;
+    }
+
+    .val-green { color: var(--accent-green); }
+    .val-red { color: var(--accent-red); }
+    .val-amber { color: var(--accent-orange); }
+    .val-cyan { color: var(--accent-cyan); }
+    .val-blue { color: var(--accent-blue); }
+
+    .kpi-footer {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 500;
+    }
+
+    /* Layouts */
+    .dashboard-layout-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .dashboard-layout-3col {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 1024px) {
+      .dashboard-layout-2col, .dashboard-layout-3col {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .chart-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .panel-title {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .panel-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .chart-container {
+      position: relative;
+      flex-grow: 1;
+      min-height: 290px;
+      width: 100%;
+    }
+
+    /* Tables */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+
+    .data-table th {
+      background: #f8fafc;
+      color: var(--text-muted);
+      text-align: left;
+      padding: 10px 14px;
+      font-weight: 700;
+      border-bottom: 1px solid var(--border-subtle);
+      text-transform: uppercase;
+      font-size: 0.72rem;
+      letter-spacing: 0.04em;
+    }
+
+    .data-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-main);
+    }
+
+    .data-table tr:hover td {
+      background: #f8fafc;
+    }
+
+    .status-pill {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 9999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .pill-green { background: var(--accent-green-light); color: var(--accent-green); }
+    .pill-red { background: var(--accent-red-light); color: var(--accent-red); }
+    .pill-amber { background: var(--accent-amber-light); color: var(--accent-amber); }
+    .pill-blue { background: var(--accent-blue-light); color: var(--accent-blue); }
+
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      font-size: 0.76rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .filter-btn:hover, .filter-btn.active {
+      background: var(--accent-blue);
+      color: #ffffff;
+      border-color: var(--accent-blue);
+    }
+
+    #syncIndicator {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* =========================================================================
+       ESTILOS DEL MINIJUEGO DE BLACKJACK (CASINO OVERLAY)
+       ========================================================================= */
+    .bj-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(8px);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: fadeIn 0.25s ease;
+    }
+
+    .bj-overlay.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .bj-table {
+      width: 100%;
+      max-width: 860px;
+      background: radial-gradient(circle at center, #065f46 0%, #064e3b 65%, #022c22 100%);
+      border: 8px solid #451a03;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75), inset 0 0 60px rgba(0, 0, 0, 0.45);
+      border-radius: 28px;
+      padding: 24px 30px;
+      color: #ffffff;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .bj-table::before {
+      content: '';
+      position: absolute;
+      inset: 8px;
+      border: 2px dashed rgba(251, 191, 36, 0.28);
+      border-radius: 20px;
+      pointer-events: none;
+    }
+
+    .bj-top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      padding-bottom: 12px;
+      z-index: 1;
+    }
+
+    .bj-title {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #fbbf24;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: 0.03em;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    }
+
+    .bj-controls-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .bj-icon-btn {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .bj-icon-btn:hover {
+      background: rgba(251, 191, 36, 0.2);
+      border-color: #fbbf24;
+      color: #fbbf24;
+    }
+
+    .bj-stats-row {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      z-index: 1;
+    }
+
+    .bj-stat-pill {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      padding: 8px 20px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .bj-stat-pill span {
+      color: #fbbf24;
+      font-size: 1.05rem;
+      font-weight: 800;
+    }
+
+    .bj-zone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 135px;
+      justify-content: center;
+      z-index: 1;
+    }
+
+    .bj-zone-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #a7f3d0;
+      font-weight: 700;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .bj-score-badge {
+      background: #fbbf24;
+      color: #0f172a;
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 800;
+    }
+
+    .bj-cards {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      min-height: 100px;
+      align-items: center;
+    }
+
+    .playing-card {
+      width: 72px;
+      height: 104px;
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 6px 8px;
+      color: #0f172a;
+      font-weight: 800;
+      position: relative;
+      animation: dealCard 0.25s ease-out;
+      user-select: none;
+    }
+
+    @keyframes dealCard {
+      from { transform: translateY(-25px) scale(0.85); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+
+    .playing-card.red {
+      color: #dc2626;
+    }
+
+    .playing-card.hidden-card {
+      background: repeating-linear-gradient(
+        45deg,
+        #1e3a8a,
+        #1e3a8a 8px,
+        #1d4ed8 8px,
+        #1d4ed8 16px
+      );
+      border: 3px solid #ffffff;
+    }
+
+    .card-corner-top {
+      font-size: 0.85rem;
+      line-height: 1;
+      text-align: left;
+    }
+
+    .card-center-suit {
+      font-size: 1.7rem;
+      text-align: center;
+      line-height: 1;
+    }
+
+    .card-corner-bottom {
+      font-size: 0.85rem;
+      line-height: 1;
+      text-align: right;
+      transform: rotate(180deg);
+    }
+
+    .bj-message {
+      text-align: center;
+      font-size: 1.05rem;
+      font-weight: 800;
+      min-height: 28px;
+      color: #fde68a;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+      z-index: 1;
+    }
+
+    .bj-actions-area {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      align-items: center;
+      z-index: 1;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      padding-top: 14px;
+    }
+
+    .chips-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .chip-btn {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      border: 4px dashed #ffffff;
+      font-weight: 800;
+      font-size: 0.8rem;
+      color: #ffffff;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.45);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .chip-btn:hover:not(:disabled) {
+      transform: translateY(-4px) scale(1.06);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.6);
+    }
+
+    .chip-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .chip-10 { background: #2563eb; }
+    .chip-25 { background: #059669; }
+    .chip-50 { background: #ea580c; }
+    .chip-100 { background: #1e293b; border-color: #fbbf24; color: #fbbf24; }
+
+    .bj-buttons-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .bj-btn {
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-weight: 800;
+      font-size: 0.85rem;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.35);
+    }
+
+    .bj-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .bj-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+    }
+
+    .btn-deal { background: #fbbf24; color: #0f172a; }
+    .btn-hit { background: #10b981; color: #ffffff; }
+    .btn-stand { background: #ef4444; color: #ffffff; }
+    .btn-double { background: #3b82f6; color: #ffffff; }
+    .btn-clear { background: rgba(255,255,255,0.15); color: #ffffff; }
+  </style>
+</head>
+<body>
+
+  <!-- Botón discreto de Pica en la esquina superior izquierda -->
+  <button class="secret-spade-btn" onclick="openBlackjack()" title="SQA Casino Lounge">♠</button>
+
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div class="title-group">
+        <h1>THE BLOG · SQA EXECUTIVE DASHBOARD <span class="badge-live"><span class="badge-dot"></span> Sincronizado con Google Sheets</span></h1>
+        <p>Aseguramiento de Calidad de Software · Monitoreo Ejecutivo bajo IEEE 730 / ISO 29148 / ISO 25010 / ISO 42010</p>
+      </div>
+      <div class="header-actions">
+        <span id="syncIndicator">Cargando datos...</span>
+        <button class="btn-refresh" onclick="cargarDatos()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          Actualizar Ahora
+        </button>
+        <div class="meta-tag">
+          Última Lectura: <span id="metaHora">--:--:--</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Top KPI Scorecards -->
+    <div class="kpi-grid">
+      <div class="kpi-card card-green">
+        <span class="kpi-label">Cronograma SQA (PCR)</span>
+        <div class="kpi-value val-green" id="kpiPCR">--%</div>
+        <div class="kpi-footer" id="footerPCR">Meta: ≥ 80%</div>
+      </div>
+      <div class="kpi-card card-red">
+        <span class="kpi-label">Calidad Requisitos (ICR)</span>
+        <div class="kpi-value val-red" id="kpiICR">--%</div>
+        <div class="kpi-footer" id="footerICR">Meta: ≥ 85%</div>
+      </div>
+      <div class="kpi-card card-amber">
+        <span class="kpi-label">Densidad Defectos (DDA)</span>
+        <div class="kpi-value val-amber" id="kpiDDA">--%</div>
+        <div class="kpi-footer" id="footerDDA">Umbral máx: ≤ 15%</div>
+      </div>
+      <div class="kpi-card card-cyan">
+        <span class="kpi-label">Defectos Tipificados</span>
+        <div class="kpi-value val-cyan" id="kpiTipificados">-- / --</div>
+        <div class="kpi-footer">100% clasificados en Jira (ISO 29119-3)</div>
+      </div>
+      <div class="kpi-card card-blue">
+        <span class="kpi-label">Cobertura Inspección (CIE)</span>
+        <div class="kpi-value val-blue" id="kpiCIE">--%</div>
+        <div class="kpi-footer">4 de 4 artefactos base auditados</div>
+      </div>
+      <div class="kpi-card card-blue">
+        <span class="kpi-label">Detección Temprana (TDT)</span>
+        <div class="kpi-value val-blue" id="kpiTDT">--%</div>
+        <div class="kpi-footer">100% contención previa a código</div>
+      </div>
+    </div>
+
+    <!-- Charts Layout: Side by Side -->
+    <div class="dashboard-layout-2col">
+      <div class="chart-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Panel de Control Estadístico - The Blog (Fase 1)</div>
+            <div class="panel-subtitle">Porcentaje de cumplimiento de métricas SQA vs. métricas de defectos/riesgo</div>
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas id="controlPanelChart"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Índice de Calidad (ICR) vs Densidad de Defectos (DDA) por Artefacto</div>
+            <div class="panel-subtitle">Desglose comparativo con porcentajes específicos por entregable</div>
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas id="barArtifactsChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Tables Grid -->
+    <div class="dashboard-layout-3col">
+      <div class="chart-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Consolidado de Listas de Chequeo Estáticas (Confluence 04.1 - 04.4)</div>
+            <div class="panel-subtitle">Extraído dinámicamente de la hoja Datos_Checklists_Estaticas</div>
+          </div>
+        </div>
+        <div style="overflow-x: auto;">
+          <table class="data-table" id="checklistsTable">
+            <thead>
+              <tr>
+                <th>Artefacto Auditado</th>
+                <th style="text-align: center;">Ítems Totales</th>
+                <th style="text-align: center;">Cumple</th>
+                <th style="text-align: center;">No Cumple</th>
+                <th style="text-align: center;">Hallazgos Jira</th>
+                <th style="text-align: center;">ICR (%)</th>
+                <th style="text-align: center;">DDA (%)</th>
+              </tr>
+            </thead>
+            <tbody id="checklistsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="chart-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Distribución por Severidad</div>
+            <div class="panel-subtitle" id="donutSubtitle">Cargando incidencias...</div>
+          </div>
+        </div>
+        <div class="chart-container" style="display:flex; justify-content:center; align-items:center;">
+          <canvas id="severityDonutChart" style="max-height: 240px;"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Jira Interactive Filterable Table -->
+    <div class="chart-panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">Registro de Incidencias Formales en Jira (Fase 1)</div>
+          <div class="panel-subtitle">Hallazgos registrados como Error en Datos_Jira_Raw</div>
+        </div>
+      </div>
+      <div class="filter-bar" id="filterBar"></div>
+      <div style="max-height: 380px; overflow-y: auto;">
+        <table class="data-table" id="jiraTable">
+          <thead>
+            <tr>
+              <th>Clave</th>
+              <th>Artefacto</th>
+              <th>Resumen del Hallazgo</th>
+              <th>Responsable</th>
+              <th>Severidad</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="jiraTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL OVERLAY: MINIJUEGO DE BLACKJACK CON MÚSICA DE CASINO
+       ========================================================================= -->
+  <div class="bj-overlay" id="blackjackOverlay">
+    <div class="bj-table">
+      <div class="bj-top-bar">
+        <div class="bj-title">♠ SQA ROYALE CASINO · BLACKJACK 21</div>
+        <div class="bj-controls-top">
+          <button class="bj-icon-btn" id="musicToggleBtn" onclick="toggleCasinoMusic()">
+            🔊 Música: ON
+          </button>
+          <button class="bj-icon-btn" onclick="resetBankroll()">
+            ↺ Reiniciar Fichas
+          </button>
+          <button class="bj-icon-btn" onclick="closeBlackjack()">
+            ✕ Cerrar
+          </button>
+        </div>
+      </div>
+
+      <div class="bj-stats-row">
+        <div class="bj-stat-pill">Fichas SQA: <span id="bjBankroll">$1000</span></div>
+        <div class="bj-stat-pill">Apuesta Actual: <span id="bjCurrentBet">$0</span></div>
+      </div>
+
+      <!-- Zona del Crupier -->
+      <div class="bj-zone">
+        <div class="bj-zone-label">
+          Mano del Crupier (Auditor Líder) <span class="bj-score-badge" id="dealerScoreBadge">0</span>
+        </div>
+        <div class="bj-cards" id="dealerCards"></div>
+      </div>
+
+      <!-- Mensaje central -->
+      <div class="bj-message" id="bjStatusMessage">Selecciona tus fichas para apostar y presiona REPARTIR</div>
+
+      <!-- Zona del Jugador -->
+      <div class="bj-zone">
+        <div class="bj-zone-label">
+          Tu Mano <span class="bj-score-badge" id="playerScoreBadge">0</span>
+        </div>
+        <div class="bj-cards" id="playerCards"></div>
+      </div>
+
+      <!-- Controles de Apuesta y Juego -->
+      <div class="bj-actions-area">
+        <div class="chips-row" id="chipsContainer">
+          <button class="chip-btn chip-10" onclick="addBet(10)">$10</button>
+          <button class="chip-btn chip-25" onclick="addBet(25)">$25</button>
+          <button class="chip-btn chip-50" onclick="addBet(50)">$50</button>
+          <button class="chip-btn chip-100" onclick="addBet(100)">$100</button>
+        </div>
+        <div class="bj-buttons-row">
+          <button class="bj-btn btn-clear" id="btnClearBet" onclick="clearBet()">Limpiar Apuesta</button>
+          <button class="bj-btn btn-deal" id="btnDeal" onclick="startHand()">Repartir</button>
+          <button class="bj-btn btn-hit" id="btnHit" onclick="playerHit()" disabled>Pedir Carta</button>
+          <button class="bj-btn btn-stand" id="btnStand" onclick="playerStand()" disabled>Plantarse</button>
+          <button class="bj-btn btn-double" id="btnDouble" onclick="playerDouble()" disabled>Doblar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // CONFIGURACIÓN: URL DE TU APLICACIÓN WEB DE GOOGLE APPS SCRIPT
+    // =========================================================================
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyNqBtE88UONXCWbZWm6teP6eZvZdhctdufh0b7ulpPkhUpirsiFwhD4BJ6EnvqL8_p3g/exec";
+    
+    const REFRESH_INTERVAL_MS = 30000;
+
+    let appData = null;
+    let currentFilter = 'ALL';
+
+    let controlPanelChart = null;
+    let barArtifactsChart = null;
+    let severityDonutChart = null;
+
+    const textMuted = '#64748b';
+
+    const horizontalDataLabelsPlugin = {
+      id: 'horizontalDataLabels',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        chart.data.datasets.forEach((dataset, datasetIndex) => {
+          const meta = chart.getDatasetMeta(datasetIndex);
+          meta.data.forEach((bar, index) => {
+            const val = dataset.data[index];
+            if (val !== undefined && val !== null) {
+              const xPos = bar.x + 8;
+              const yPos = bar.y + 4;
+              ctx.save();
+              ctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
+              ctx.fillStyle = datasetIndex === 0 ? '#1d4ed8' : '#c2410c';
+              ctx.fillText(Number(val).toFixed(1) + '%', xPos, yPos);
+              ctx.restore();
+            }
+          });
+        });
+      }
+    };
+
+    async function cargarDatos() {
+      const indicator = document.getElementById('syncIndicator');
+      indicator.textContent = 'Consultando Google Sheet...';
+
+      try {
+        const res = await fetch(APPS_SCRIPT_URL, { method: 'GET', redirect: 'follow' });
+        if (!res.ok) throw new Error('Respuesta HTTP: ' + res.status);
+        appData = await res.json();
+
+        indicator.textContent = 'En línea (Google Sheets)';
+        document.getElementById('metaHora').textContent = appData.meta.ultimaActualizacion || new Date().toLocaleTimeString('es-VE');
+
+        renderDashboard();
+      } catch (err) {
+        console.error('Error al conectar con Google Sheets:', err);
+        indicator.textContent = 'Error de conexión con Sheets';
+      }
+    }
+
+    function renderDashboard() {
+      if (!appData) return;
+      renderKPIs();
+      renderChecklistsTable();
+      renderJiraTable();
+      updateCharts();
+    }
+
+    function renderKPIs() {
+      const k = appData.kpis;
+      document.getElementById('kpiPCR').textContent = Number(k.pcr).toFixed(0) + '%';
+      document.getElementById('footerPCR').textContent = `Meta: ≥ 80% (${k.tareasCompletadas} de ${k.tareasPlanificadas} tareas completadas)`;
+
+      document.getElementById('kpiICR').textContent = Number(k.icr).toFixed(1) + '%';
+      document.getElementById('footerICR').textContent = k.icr >= 85 ? 'Meta: ≥ 85% (Aceptable)' : 'Meta: ≥ 85% (Requiere Refactorización)';
+
+      const totalDefectos = appData.incidencias.length;
+      const totalEvaluados = appData.artefactos.reduce((acc, a) => acc + (a.total - a.noAplica), 0);
+      document.getElementById('kpiDDA').textContent = Number(k.dda).toFixed(1) + '%';
+      document.getElementById('footerDDA').textContent = `Umbral máx: ≤ 15% (${totalDefectos} hallazgos / ${totalEvaluados} ítems)`;
+
+      document.getElementById('kpiTipificados').textContent = `${totalDefectos} / ${totalDefectos}`;
+      document.getElementById('kpiCIE').textContent = Number(k.cie).toFixed(0) + '%';
+      document.getElementById('kpiTDT').textContent = Number(k.tdt).toFixed(0) + '%';
+    }
+
+    function renderChecklistsTable() {
+      const tbody = document.getElementById('checklistsTableBody');
+      tbody.innerHTML = '';
+
+      let sumTotal = 0, sumCumple = 0, sumNoCumple = 0, sumNA = 0, sumHallazgos = 0;
+
+      appData.artefactos.forEach(art => {
+        sumTotal += art.total;
+        sumCumple += art.cumple;
+        sumNoCumple += art.noCumple;
+        sumNA += art.noAplica;
+        sumHallazgos += art.hallazgos;
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td><strong>${art.nombre}</strong></td>
+          <td style="text-align: center;">${art.total} ${art.noAplica > 0 ? `(${art.noAplica} N/A)` : ''}</td>
+          <td style="text-align: center; color: var(--accent-green); font-weight:700;">${art.cumple}</td>
+          <td style="text-align: center; color: var(--accent-red); font-weight:700;">${art.noCumple}</td>
+          <td style="text-align: center;"><span class="status-pill pill-blue">${art.hallazgos}</span></td>
+          <td style="text-align: center; font-weight:700; color: var(--accent-blue);">${Number(art.icr).toFixed(1)}%</td>
+          <td style="text-align: center; font-weight:700; color: ${art.dda <= 15 ? 'var(--accent-green)' : 'var(--accent-red)'};">${Number(art.dda).toFixed(1)}%</td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      const totalEvaluados = sumTotal - sumNA;
+      const icrGlobal = ((sumCumple / totalEvaluados) * 100).toFixed(1);
+      const ddaGlobal = ((sumHallazgos / totalEvaluados) * 100).toFixed(1);
+
+      const totalRow = document.createElement('tr');
+      totalRow.style.background = '#f1f5f9';
+      totalRow.style.fontWeight = '800';
+      totalRow.innerHTML = `
+        <td>TOTAL GENERAL CONSOLIDADO</td>
+        <td style="text-align: center;">${sumTotal}</td>
+        <td style="text-align: center; color: var(--accent-green);">${sumCumple}</td>
+        <td style="text-align: center; color: var(--accent-red);">${sumNoCumple}</td>
+        <td style="text-align: center;"><span class="status-pill pill-blue">${sumHallazgos}</span></td>
+        <td style="text-align: center; color: var(--accent-red);">${icrGlobal}%</td>
+        <td style="text-align: center; color: var(--accent-amber);">${ddaGlobal}%</td>
+      `;
+      tbody.appendChild(totalRow);
+    }
+
+    function renderJiraTable() {
+      const tbody = document.getElementById('jiraTableBody');
+      tbody.innerHTML = '';
+
+      const counts = { ALL: appData.incidencias.length, High: 0, Medium: 0, Low: 0 };
+
+      appData.incidencias.forEach(item => {
+        if (counts[item.severidad] !== undefined) counts[item.severidad]++;
+
+        const isVisible = (currentFilter === 'ALL' || item.severidad === currentFilter);
+        const row = document.createElement('tr');
+        row.setAttribute('data-sev', item.severidad);
+        if (!isVisible) row.style.display = 'none';
+
+        const pillClass = item.severidad === 'High' ? 'pill-red' : item.severidad === 'Medium' ? 'pill-amber' : 'pill-green';
+        const sevLabel = item.severidad === 'High' ? 'Alta' : item.severidad === 'Medium' ? 'Media' : 'Baja';
+
+        row.innerHTML = `
+          <td><strong>${item.clave}</strong></td>
+          <td>${item.artefacto}</td>
+          <td>${item.resumen}</td>
+          <td>${item.responsable}</td>
+          <td><span class="status-pill ${pillClass}">${sevLabel}</span></td>
+          <td>${item.estado}</td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      document.getElementById('filterBar').innerHTML = `
+        <button class="filter-btn ${currentFilter === 'ALL' ? 'active' : ''}" onclick="filterJira('ALL')">Todos (${counts.ALL})</button>
+        <button class="filter-btn ${currentFilter === 'High' ? 'active' : ''}" onclick="filterJira('High')">Severidad Alta (${counts.High})</button>
+        <button class="filter-btn ${currentFilter === 'Medium' ? 'active' : ''}" onclick="filterJira('Medium')">Severidad Media (${counts.Medium})</button>
+        <button class="filter-btn ${currentFilter === 'Low' ? 'active' : ''}" onclick="filterJira('Low')">Severidad Baja (${counts.Low})</button>
+      `;
+
+      document.getElementById('donutSubtitle').textContent = `Total: ${counts.ALL} incidencias registradas en Jira`;
+    }
+
+    function filterJira(severity) {
+      currentFilter = severity;
+      renderJiraTable();
+    }
+
+    function initCharts() {
+      const ctxControl = document.getElementById('controlPanelChart').getContext('2d');
+      controlPanelChart = new Chart(ctxControl, {
+        type: 'bar',
+        data: {
+          labels: [
+            'Eficacia Revisiones (ERE)',
+            'Detección Temprana (TDT)',
+            'Cobertura Inspección (CIE)',
+            'Tipificación Jira (29119-3)',
+            'Cumplimiento Cronograma (PCR)',
+            'Calidad de Requisitos (ICR)',
+            'Densidad de Defectos (DDA)'
+          ],
+          datasets: [{
+            label: 'Porcentaje',
+            data: [0, 0, 0, 0, 0, 0, 0],
+            backgroundColor: [
+              '#2563eb', '#2563eb', '#2563eb', '#2563eb', '#2563eb', '#ea580c', '#ea580c'
+            ],
+            borderRadius: 4,
+            barPercentage: 0.65
+          }]
+        },
+        plugins: [horizontalDataLabelsPlugin],
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          layout: { padding: { right: 50 } },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#0f172a',
+              callbacks: { label: ctx => Number(ctx.parsed.x).toFixed(1) + '%' }
+            }
+          },
+          scales: {
+            x: {
+              max: 110,
+              grid: { color: 'rgba(226, 232, 240, 0.8)' },
+              ticks: { color: textMuted, callback: val => val <= 100 ? val + '%' : '' }
+            },
+            y: {
+              grid: { display: false },
+              ticks: { color: '#1e293b', font: { weight: '600', size: 11 } }
+            }
+          }
+        }
+      });
+
+      const ctxBar = document.getElementById('barArtifactsChart').getContext('2d');
+      barArtifactsChart = new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+          labels: [],
+          datasets: [
+            { label: 'ICR (% Conforme)', data: [], backgroundColor: '#2563eb', borderRadius: 4 },
+            { label: 'DDA (% Densidad Defectos)', data: [], backgroundColor: '#ea580c', borderRadius: 4 }
+          ]
+        },
+        plugins: [horizontalDataLabelsPlugin],
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          layout: { padding: { right: 50 } },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: { color: '#334155', font: { family: 'Plus Jakarta Sans', weight: '600' } }
+            },
+            tooltip: {
+              backgroundColor: '#0f172a',
+              callbacks: { label: ctx => ctx.dataset.label + ': ' + Number(ctx.parsed.x).toFixed(1) + '%' }
+            }
+          },
+          scales: {
+            x: {
+              max: 75,
+              grid: { color: 'rgba(226, 232, 240, 0.8)' },
+              ticks: { color: textMuted, callback: val => val + '%' }
+            },
+            y: {
+              grid: { display: false },
+              ticks: { color: '#1e293b', font: { weight: '600', size: 11 } }
+            }
+          }
+        }
+      });
+
+      const ctxDonut = document.getElementById('severityDonutChart').getContext('2d');
+      severityDonutChart = new Chart(ctxDonut, {
+        type: 'doughnut',
+        data: {
+          labels: ['Alta', 'Media', 'Baja'],
+          datasets: [{
+            data: [0, 0, 0],
+            backgroundColor: ['#dc2626', '#ea580c', '#059669'],
+            borderWidth: 2,
+            borderColor: '#ffffff',
+            hoverOffset: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { color: '#334155', font: { family: 'Plus Jakarta Sans', weight: '600' } }
+            }
+          },
+          cutout: '70%'
+        }
+      });
+    }
+
+    function updateCharts() {
+      if (!controlPanelChart || !appData) return;
+
+      const k = appData.kpis;
+      controlPanelChart.data.datasets[0].data = [
+        k.ere,
+        k.tdt,
+        k.cie,
+        100.0,
+        k.pcr,
+        k.icr,
+        k.dda
+      ];
+      controlPanelChart.update();
+
+      barArtifactsChart.data.labels = appData.artefactos.map(a => a.claveCorta);
+      barArtifactsChart.data.datasets[0].data = appData.artefactos.map(a => a.icr);
+      barArtifactsChart.data.datasets[1].data = appData.artefactos.map(a => a.dda);
+      barArtifactsChart.update();
+
+      const counts = { High: 0, Medium: 0, Low: 0 };
+      appData.incidencias.forEach(i => {
+        if (counts[i.severidad] !== undefined) counts[i.severidad]++;
+      });
+      severityDonutChart.data.labels = [`Alta (${counts.High})`, `Media (${counts.Medium})`, `Baja (${counts.Low})`];
+      severityDonutChart.data.datasets[0].data = [counts.High, counts.Medium, counts.Low];
+      severityDonutChart.update();
+    }
+
+    // =========================================================================
+    // SINTETIZADOR DE MÚSICA JAZZ DE CASINO Y EFECTOS (WEB AUDIO API)
+    // =========================================================================
+    let audioCtx = null;
+    let musicPlaying = false;
+    let musicInterval = null;
+    let stepIndex = 0;
+
+    // Progresión Jazz Lounge ii - V - I - VI (Dm7 -> G7 -> Cmaj7 -> A7)
+    const jazzProgression = [
+      { bass: [146.83, 174.61, 220.00, 174.61], chord: [293.66, 349.23, 440.00, 523.25] }, // Dm7
+      { bass: [98.00, 123.47, 146.83, 174.61],  chord: [246.94, 293.66, 349.23, 392.00] }, // G7
+      { bass: [130.81, 164.81, 196.00, 246.94], chord: [261.63, 329.63, 392.00, 493.88] }, // Cmaj7
+      { bass: [110.00, 138.59, 164.81, 196.00], chord: [220.00, 277.18, 329.63, 392.00] }  // A7
+    ];
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playBassNote(freq, duration) {
+      if (!audioCtx || !musicPlaying) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+      gain.gain.setValueAtTime(0.14, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function playLoungeChord(freqs, duration) {
+      if (!audioCtx || !musicPlaying) return;
+      freqs.forEach(f => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(f, audioCtx.currentTime);
+
+        gain.gain.setValueAtTime(0.035, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      });
+    }
+
+    function playHiHat(vol = 0.025) {
+      if (!audioCtx || !musicPlaying) return;
+      const bufferSize = audioCtx.sampleRate * 0.05;
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buffer;
+
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'highpass';
+      filter.frequency.setValueAtTime(7000, audioCtx.currentTime);
+
+      const gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.045);
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(audioCtx.destination);
+      noise.start();
+    }
+
+    function startCasinoMusic() {
+      initAudio();
+      if (musicPlaying) return;
+      musicPlaying = true;
+      document.getElementById('musicToggleBtn').textContent = '🔊 Música: ON';
+
+      stepIndex = 0;
+      musicInterval = setInterval(() => {
+        if (!musicPlaying) return;
+        const bar = Math.floor(stepIndex / 4) % jazzProgression.length;
+        const beat = stepIndex % 4;
+        const currentBar = jazzProgression[bar];
+
+        // Walking Bass en cada pulso
+        playBassNote(currentBar.bass[beat], 0.45);
+
+        // Acordes suaves de piano eléctrico en los pulsos 1 y 3 (con swing)
+        if (beat === 0) {
+          playLoungeChord(currentBar.chord, 0.9);
+        } else if (beat === 2) {
+          setTimeout(() => playLoungeChord(currentBar.chord, 0.6), 160);
+        }
+
+        // Swing Hi-Hat
+        playHiHat(0.025);
+        if (beat === 1 || beat === 3) {
+          setTimeout(() => playHiHat(0.018), 320);
+        }
+
+        stepIndex++;
+      }, 480);
+    }
+
+    function stopCasinoMusic() {
+      musicPlaying = false;
+      if (musicInterval) {
+        clearInterval(musicInterval);
+        musicInterval = null;
+      }
+      document.getElementById('musicToggleBtn').textContent = '🔇 Música: OFF';
+    }
+
+    function toggleCasinoMusic() {
+      if (musicPlaying) {
+        stopCasinoMusic();
+      } else {
+        startCasinoMusic();
+      }
+    }
+
+    function playSfx(type) {
+      initAudio();
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      const now = audioCtx.currentTime;
+      if (type === 'card') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.exponentialRampToValueAtTime(220, now + 0.06);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+        osc.start(now);
+        osc.stop(now + 0.06);
+      } else if (type === 'chip') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1400, now);
+        osc.frequency.setValueAtTime(1950, now + 0.03);
+        gain.gain.setValueAtTime(0.07, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+        osc.start(now);
+        osc.stop(now + 0.09);
+      } else if (type === 'win') {
+        osc.type = 'triangle';
+        [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+          osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+        });
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        osc.start(now);
+        osc.stop(now + 0.4);
+      } else if (type === 'lose') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.linearRampToValueAtTime(130, now + 0.3);
+        gain.gain.setValueAtTime(0.07, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+        osc.start(now);
+        osc.stop(now + 0.32);
+      }
+    }
+
+    // =========================================================================
+    // LÓGICA DEL JUEGO DE BLACKJACK 21
+    // =========================================================================
+    let bjDeck = [];
+    let playerHand = [];
+    let dealerHand = [];
+    let bankroll = 1000;
+    let currentBet = 0;
+    let inRound = false;
+    let dealerHidden = true;
+
+    const suits = ['♠', '♥', '♦', '♣'];
+    const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+
+    function openBlackjack() {
+      document.getElementById('blackjackOverlay').classList.add('active');
+      startCasinoMusic();
+      updateBjUI();
+    }
+
+    function closeBlackjack() {
+      document.getElementById('blackjackOverlay').classList.remove('active');
+      stopCasinoMusic();
+    }
+
+    function buildDeck() {
+      bjDeck = [];
+      for (let s of suits) {
+        for (let v of values) {
+          bjDeck.push({ suit: s, value: v });
+        }
+      }
+      // Barajar (Fisher-Yates)
+      for (let i = bjDeck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [bjDeck[i], bjDeck[j]] = [bjDeck[j], bjDeck[i]];
+      }
+    }
+
+    function drawCard() {
+      if (bjDeck.length < 10) buildDeck();
+      playSfx('card');
+      return bjDeck.pop();
+    }
+
+    function calculateScore(hand) {
+      let score = 0;
+      let aces = 0;
+      for (let card of hand) {
+        if (card.value === 'A') {
+          aces += 1;
+          score += 11;
+        } else if (['K', 'Q', 'J'].includes(card.value)) {
+          score += 10;
+        } else {
+          score += parseInt(card.value, 10);
+        }
+      }
+      while (score > 21 && aces > 0) {
+        score -= 10;
+        aces -= 1;
+      }
+      return score;
+    }
+
+    function addBet(amount) {
+      if (inRound) return;
+      if (bankroll >= amount) {
+        bankroll -= amount;
+        currentBet += amount;
+        playSfx('chip');
+        document.getElementById('bjStatusMessage').textContent = 'Presiona REPARTIR para comenzar la mano';
+        updateBjUI();
+      } else {
+        document.getElementById('bjStatusMessage').textContent = 'No tienes suficientes fichas para esa apuesta';
+      }
+    }
+
+    function clearBet() {
+      if (inRound) return;
+      bankroll += currentBet;
+      currentBet = 0;
+      playSfx('chip');
+      updateBjUI();
+    }
+
+    function resetBankroll() {
+      if (inRound) return;
+      bankroll = 1000;
+      currentBet = 0;
+      playerHand = [];
+      dealerHand = [];
+      document.getElementById('bjStatusMessage').textContent = 'Fichas reiniciadas a $1000. ¡Haz tu apuesta!';
+      updateBjUI();
+    }
+
+    function startHand() {
+      if (inRound) return;
+      if (currentBet <= 0) {
+        document.getElementById('bjStatusMessage').textContent = '¡Debes apostar al menos una ficha antes de repartir!';
+        return;
+      }
+
+      inRound = true;
+      dealerHidden = true;
+      if (bjDeck.length < 15) buildDeck();
+
+      playerHand = [drawCard(), drawCard()];
+      dealerHand = [drawCard(), drawCard()];
+
+      updateBjUI();
+
+      const pScore = calculateScore(playerHand);
+      if (pScore === 21) {
+        // Blackjack natural
+        dealerHidden = false;
+        const dScore = calculateScore(dealerHand);
+        if (dScore === 21) {
+          endRound('push', '¡Empate con Blackjack! Recuperas tu apuesta.');
+        } else {
+          const winAmount = Math.floor(currentBet * 2.5);
+          bankroll += winAmount;
+          playSfx('win');
+          endRound('blackjack', `¡BLACKJACK 21! Ganas $${winAmount}`);
+        }
+      } else {
+        document.getElementById('bjStatusMessage').textContent = 'Tu turno: ¿Pedir carta, Plantarse o Doblar?';
+      }
+    }
+
+    function playerHit() {
+      if (!inRound) return;
+      playerHand.push(drawCard());
+      const pScore = calculateScore(playerHand);
+      updateBjUI();
+
+      if (pScore > 21) {
+        dealerHidden = false;
+        playSfx('lose');
+        endRound('lose', `Te pasaste con ${pScore}. Gana el Crupier.`);
+      } else if (pScore === 21) {
+        playerStand();
+      }
+    }
+
+    function playerDouble() {
+      if (!inRound || playerHand.length !== 2 || bankroll < currentBet) return;
+      bankroll -= currentBet;
+      currentBet *= 2;
+      playSfx('chip');
+      playerHand.push(drawCard());
+      const pScore = calculateScore(playerHand);
+      updateBjUI();
+
+      if (pScore > 21) {
+        dealerHidden = false;
+        playSfx('lose');
+        endRound('lose', `Doblaste y te pasaste con ${pScore}.`);
+      } else {
+        playerStand();
+      }
+    }
+
+    function playerStand() {
+      if (!inRound) return;
+      dealerHidden = false;
+      updateBjUI();
+
+      // El Crupier pide hasta alcanzar 17 o más
+      while (calculateScore(dealerHand) < 17) {
+        dealerHand.push(drawCard());
+      }
+
+      const pScore = calculateScore(playerHand);
+      const dScore = calculateScore(dealerHand);
+
+      if (dScore > 21) {
+        const winAmount = currentBet * 2;
+        bankroll += winAmount;
+        playSfx('win');
+        endRound('win', `¡El Crupier se pasó (${dScore})! Ganas $${winAmount}`);
+      } else if (pScore > dScore) {
+        const winAmount = currentBet * 2;
+        bankroll += winAmount;
+        playSfx('win');
+        endRound('win', `¡Ganaste (${pScore} a ${dScore})! Recibes $${winAmount}`);
+      } else if (pScore < dScore) {
+        playSfx('lose');
+        endRound('lose', `El Crupier gana (${dScore} a ${pScore}).`);
+      } else {
+        bankroll += currentBet;
+        endRound('push', `Empate a ${pScore} (Push). Recuperas tu apuesta.`);
+      }
+    }
+
+    function endRound(outcome, message) {
+      inRound = false;
+      currentBet = 0;
+      document.getElementById('bjStatusMessage').textContent = message;
+      updateBjUI();
+
+      if (bankroll === 0) {
+        document.getElementById('bjStatusMessage').textContent = message + ' Te quedaste sin fichas — presiona "Reiniciar Fichas".';
+      }
+    }
+
+    function createCardElement(card, hidden = false) {
+      const div = document.createElement('div');
+      if (hidden) {
+        div.className = 'playing-card hidden-card';
+        return div;
+      }
+      const isRed = card.suit === '♥' || card.suit === '♦';
+      div.className = `playing-card ${isRed ? 'red' : ''}`;
+      div.innerHTML = `
+        <div class="card-corner-top">${card.value}<br>${card.suit}</div>
+        <div class="card-center-suit">${card.suit}</div>
+        <div class="card-corner-bottom">${card.value}<br>${card.suit}</div>
+      `;
+      return div;
+    }
+
+    function updateBjUI() {
+      document.getElementById('bjBankroll').textContent = `$${bankroll}`;
+      document.getElementById('bjCurrentBet').textContent = `$${currentBet}`;
+
+      // Renderizar Cartas del Crupier
+      const dealerContainer = document.getElementById('dealerCards');
+      dealerContainer.innerHTML = '';
+      dealerHand.forEach((card, idx) => {
+        const isHidden = (idx === 1 && dealerHidden);
+        dealerContainer.appendChild(createCardElement(card, isHidden));
+      });
+
+      // Puntuación del Crupier
+      if (dealerHand.length === 0) {
+        document.getElementById('dealerScoreBadge').textContent = '0';
+      } else if (dealerHidden) {
+        document.getElementById('dealerScoreBadge').textContent = calculateScore([dealerHand[0]]) + ' + ?';
+      } else {
+        document.getElementById('dealerScoreBadge').textContent = calculateScore(dealerHand);
+      }
+
+      // Renderizar Cartas del Jugador
+      const playerContainer = document.getElementById('playerCards');
+      playerContainer.innerHTML = '';
+      playerHand.forEach(card => {
+        playerContainer.appendChild(createCardElement(card, false));
+      });
+      document.getElementById('playerScoreBadge').textContent = calculateScore(playerHand);
+
+      // Estado de Botones
+      const chips = document.querySelectorAll('.chip-btn');
+      chips.forEach(btn => btn.disabled = inRound);
+
+      document.getElementById('btnClearBet').disabled = inRound || currentBet === 0;
+      document.getElementById('btnDeal').disabled = inRound || currentBet === 0;
+      document.getElementById('btnHit').disabled = !inRound;
+      document.getElementById('btnStand').disabled = !inRound;
+      document.getElementById('btnDouble').disabled = !inRound || playerHand.length !== 2 || bankroll < currentBet;
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      buildDeck();
+      initCharts();
+      cargarDatos();
+      setInterval(cargarDatos, REFRESH_INTERVAL_MS);
+    });
+  </script>
+</body>
+</html>
